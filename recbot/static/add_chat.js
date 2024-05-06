@@ -30,7 +30,7 @@ async function getResponseBot(chatContent,bodyElement, text){
       divMediaBody.className = "media-body text-right align-self-center"
       divMediaContainer.appendChild(divMediaBody)
       
-      imgMedia.src = "/static/user.png"
+      imgMedia.src = "/static/images/user.png"
       imgMedia.alt = "Usuário"
       imgMedia.className = "align-self-center ml-3 rounded-circle"
       divMediaContainer.appendChild(imgMedia)
@@ -47,7 +47,7 @@ async function getResponseBot(chatContent,bodyElement, text){
       pTetx = document.createElement('p')
       imgMedia = document.createElement('img')
 
-      imgMedia.src = "/static/dog_rob.png"
+      imgMedia.src = "/static/images/dog_rob.png"
       imgMedia.alt = "Recbot"
       imgMedia.className = "align-self-center mr-3 rounded-circle"
       divMediaContainer.appendChild(imgMedia)
