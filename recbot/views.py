@@ -10,6 +10,6 @@ def recbotResponse(request):
     dict_response = {"response" : response}
     return JsonResponse(dict_response)
 
-def recbot(request):
+def recbot():
     template = loader.get_template('starter.html')
     return HttpResponse(template.render())
