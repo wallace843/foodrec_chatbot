@@ -5,6 +5,7 @@ from recbot.scripts.rag import RAG
 rag = RAG()
 
 def recbotResponse(request):
+    print(request)
     text = request.GET.get('text')
     response = rag.output(text)
     dict_response = {"response" : response}
