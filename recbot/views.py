@@ -5,13 +5,11 @@ from recbot.scripts.rag import RAG
 rag = RAG()
 
 def recbotResponse(request):
-    print('wallace1')
     text = request.GET.get('text')
     response = rag.output(text)
     dict_response = {"response" : response}
     return JsonResponse(dict_response)
 
 def recbot(request):
-    print('wallace2')
     template = loader.get_template('starter.html')
     return HttpResponse(template.render())
