@@ -6,6 +6,7 @@ import tiktoken
 import environ
 from recbot.scripts.data import MODEL_SHOTS
 
+
 class RAG:
     azure_model_embedding_name = 'text-embedding-ada-002'
     azure_model_generate_name = 'gpt-4'
