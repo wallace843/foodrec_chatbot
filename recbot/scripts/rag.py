@@ -55,13 +55,9 @@ class RAG:
                 sugestions = sugestions + r[0].page_content + ' '
 
         input_generate = input + sugestions
-
         self.conversation.append({"role":"user","content":input_generate})
-
         results = self.generate(self.conversation)
-
         response = results.choices[0].message.content
-
         self.conversation.append({"role":"assistant","content":response})
 
         return response

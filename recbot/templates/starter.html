@@ -38,7 +38,7 @@
   
   <script>
     async function getResponseBot(chatContent,bodyElement, text){
-  const response = await fetch("/bot?" + new URLSearchParams({'text': text}));
+  const response = await fetch("/bot/?" + new URLSearchParams({'text': text}));
   const js = await response.text()
   json = JSON.parse(js)
   bodyElement.innerHTML = json.response
