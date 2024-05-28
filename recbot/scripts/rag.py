@@ -59,6 +59,13 @@ class RAG:
         self.conversation.append({"role":"user","content":input_generate})
         results = self.generate(self.conversation)
         response = results.choices[0].message.content
+
+        if response[-1] != '.' and response[-1] != '!' and response[-1] != '?':
+            for i in range(len(response)):
+                if response[(-1)*(1+i)] == '.' or response[(-1)*(1+i)] == '!' or response[(-1)*(1+i)] == '?':
+                    response = response[0:len(response) - i]
+                    break
+
         self.conversation.append({"role":"assistant","content":response})
 
         return response
