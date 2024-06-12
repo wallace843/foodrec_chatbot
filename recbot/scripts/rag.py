@@ -19,6 +19,7 @@ class RAG:
         MONGO_URI = env('MONGO_URI')
         MONGO_DATABASE_NAME = env('MONGO_DATABASE_NAME')
         MONGO_COLECTION_NAME = env('MONGO_COLECTION_NAME')
+        MONGO_COLECTION_NAME_RAPPI = env('MONGO_COLECTION_NAME_RAPPI')
         MONGO_VECTOR_INDEX_NAME = env('MONGO_VECTOR_INDEX_NAME')
         AZURE_OPENAI_API_KEY = env('AZURE_OPENAI_API_KEY')
         AZURE_ENDPOINT = env('AZURE_ENDPOINT')
@@ -26,20 +27,23 @@ class RAG:
 
         mongo_client = MongoClient(MONGO_URI)
         collection = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME]
+        collection_rappi = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME_RAPPI]
         embedding = AzureOpenAIEmbeddings(model = self.azure_model_embedding_name, api_key= AZURE_OPENAI_API_KEY , azure_endpoint = AZURE_ENDPOINT)
         self.vector_search = MongoDBAtlasVectorSearch( collection = collection, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
-        
+        self.vector_search_rappi = MongoDBAtlasVectorSearch( collection = collection_rappi, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
         self.azure_model = AzureOpenAI(azure_endpoint = AZURE_ENDPOINT, api_key= AZURE_OPENAI_API_KEY, api_version = AZURE_API_VERSION)
 
     def retriever(self, input: str):
         k = 3
-        return self.vector_search.similarity_search_with_score(input, k)
+        result_ifood = self.vector_search.similarity_search_with_score(input, k)
+        result_rappi = self.vector_search_rappi.similarity_search_with_score(input, k)
+        return result_ifood + result_rappi
     
     def generate(self, input: list):
         model = self.azure_model_generate_name
         messages = input
         temperature=0.7
-        max_tokens=150
+        max_tokens=300
         top_p=0.95
         frequency_penalty=0
         presence_penalty=0
@@ -49,13 +53,16 @@ class RAG:
     def output(self, input):
         results = self.retriever(input)
         
-        THRESHOLD_MIN = 0.92
+        THRESHOLD_MIN = 0.912
         sugestions = ' '
         for r in results:
             if r[1] > THRESHOLD_MIN:
-                sugestions = sugestions + r[0].page_content + ' '
+                if sugestions == ' ':
+                    sugestions = ' Sugestões: '
+                sugestions = sugestions + r[0].page_content + '; '
 
         input_generate = input + sugestions
+        print(input_generate)
         self.conversation.append({"role":"user","content":input_generate})
         results = self.generate(self.conversation)
         response = results.choices[0].message.content
