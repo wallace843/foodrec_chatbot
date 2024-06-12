@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - Recbot
+name: Build and deploy Python app to Azure Web App - recbot
 
 on:
   push:
@@ -65,14 +65,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_7ABF382BE54443A296D2BA9B043773BE }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_DD36A05CEAF8406EA3026326F7753B01 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E45E39C64922458BAF43DA8B468F8978 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_6698CF0E9CE4452591C69A859D760B28 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8A58EE77853B4D66AAE32082D3E0A486 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6BDAF0EF2D824E78AB1D90C2E360E050 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v2
         id: deploy-to-webapp
         with:
-          app-name: 'Recbot'
+          app-name: 'recbot'
           slot-name: 'Production'
           
