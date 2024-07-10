@@ -26,17 +26,26 @@ class RAG:
         AZURE_API_VERSION = env('AZURE_API_VERSION')
 
         mongo_client = MongoClient(MONGO_URI)
-        collection = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME]
-        collection_rappi = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME_RAPPI]
+        self.collection = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME]
+        self.collection_rappi = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME_RAPPI]
         embedding = AzureOpenAIEmbeddings(model = self.azure_model_embedding_name, api_key= AZURE_OPENAI_API_KEY , azure_endpoint = AZURE_ENDPOINT)
-        self.vector_search = MongoDBAtlasVectorSearch( collection = collection, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
-        self.vector_search_rappi = MongoDBAtlasVectorSearch( collection = collection_rappi, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
+        self.vector_search = MongoDBAtlasVectorSearch( collection = self.collection, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
+        self.vector_search_rappi = MongoDBAtlasVectorSearch( collection = self.collection_rappi, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
         self.azure_model = AzureOpenAI(azure_endpoint = AZURE_ENDPOINT, api_key= AZURE_OPENAI_API_KEY, api_version = AZURE_API_VERSION)
+    
+    def retriever_1000(self, input: str):
+
+        k = 1000
+        result_ifood_1000 = self.vector_search.similarity_search_with_score(input, k)
+        result_rappi_1000 = self.vector_search_rappi.similarity_search_with_score(input, k)
+
+        return result_ifood_1000 + result_rappi_1000
 
     def retriever(self, input: str):
         k = 3
         result_ifood = self.vector_search.similarity_search_with_score(input, k)
         result_rappi = self.vector_search_rappi.similarity_search_with_score(input, k)
+
         return result_ifood + result_rappi
     
     def generate(self, input: list):
@@ -61,8 +70,9 @@ class RAG:
                     sugestions = ' Sugestões: '
                 sugestions = sugestions + r[0].page_content + '; '
 
+        results_1000 = self.retriever_1000(input)
+
         input_generate = input + sugestions
-        print(input_generate)
         self.conversation.append({"role":"user","content":input_generate})
         results = self.generate(self.conversation)
         response = results.choices[0].message.content
@@ -75,7 +85,7 @@ class RAG:
 
         self.conversation.append({"role":"assistant","content":response})
 
-        return response
+        return {"response": response, "list_dish_documents": results_1000}
 
 
 
