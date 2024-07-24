@@ -1,6 +1,9 @@
+import json
 from django.template import loader
 from django.http import HttpResponse, JsonResponse
 from recbot.scripts.rag import RAG
+from django.views.decorators.csrf import csrf_exempt
+
 
 rag = RAG()
 
@@ -14,3 +17,11 @@ def recbotResponse(request):
 def recbot(request):
     template = loader.get_template('starter.html')
     return HttpResponse(template.render())
+
+@csrf_exempt
+def recbotRecomender(request):
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    list_dict_response = rag.get_list_similarity(body['embedding'], body['city'], body['neighborhood'])
+    list_dict_response = [{"dish_id": str(l['_id']), "restaurant_id": str(l['restaurant_id']), "score":l['score']} for l in list_dict_response]
+    return JsonResponse({'results': list_dict_response})

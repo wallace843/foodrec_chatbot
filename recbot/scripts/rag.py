@@ -5,7 +5,10 @@ from openai import AzureOpenAI
 import tiktoken
 import environ
 from recbot.scripts.data import MODEL_SHOTS
-
+from datetime import datetime, timedelta
+import numpy as np
+from numpy.linalg import norm
+import pandas as pd
 
 class RAG:
     azure_model_embedding_name = 'text-embedding-ada-002'
@@ -24,6 +27,7 @@ class RAG:
         AZURE_OPENAI_API_KEY = env('AZURE_OPENAI_API_KEY')
         AZURE_ENDPOINT = env('AZURE_ENDPOINT')
         AZURE_API_VERSION = env('AZURE_API_VERSION')
+        MONGO_FOODREC_RAPPI = env('MONGO_FOODREC_RAPPI')
 
         mongo_client = MongoClient(MONGO_URI)
         self.collection = mongo_client[MONGO_DATABASE_NAME][MONGO_COLECTION_NAME]
@@ -32,9 +36,9 @@ class RAG:
         self.vector_search = MongoDBAtlasVectorSearch( collection = self.collection, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
         self.vector_search_rappi = MongoDBAtlasVectorSearch( collection = self.collection_rappi, embedding = embedding, index_name = MONGO_VECTOR_INDEX_NAME)
         self.azure_model = AzureOpenAI(azure_endpoint = AZURE_ENDPOINT, api_key= AZURE_OPENAI_API_KEY, api_version = AZURE_API_VERSION)
+        self.mongo_client_foodrec_rappi = MongoClient(MONGO_FOODREC_RAPPI)
     
     def retriever_1000(self, input: str):
-
         k = 1000
         result_ifood_1000 = self.vector_search.similarity_search_with_score(input, k)
         result_rappi_1000 = self.vector_search_rappi.similarity_search_with_score(input, k)
@@ -47,6 +51,35 @@ class RAG:
         result_rappi = self.vector_search_rappi.similarity_search_with_score(input, k)
 
         return result_ifood + result_rappi
+    
+    def get_list_similarity(self, embedding, city, neighborhood):
+        #database_date = datetime.today() - timedelta(days = 1)
+
+        database_date = datetime.today()
+        #database_ifood_name = database_date.strftime('%Y-%m-%d') + '-ifood-webscraping'
+        #print('f')
+        database_rappi_name = "TESTE-" + database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
+        #collection_ifood_list_dish = list(mongo_client[database_ifood_name]['dish'].find({}))
+        #print('v')
+
+        collection_rappi_dish = self.mongo_client_foodrec_rappi[database_rappi_name]['dish']
+        myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}} 
+        list_collection_rappi_dish = list(collection_rappi_dish.find(myquery))
+
+        #return {'results':[{'oi': 'oi'}]}
+
+        for l in list_collection_rappi_dish:
+            embedding_array = np.array(l['embedding'])
+            score = np.dot(embedding, embedding_array) / (norm(embedding) * norm(embedding_array))
+            l['score'] = score
+
+        df_results = pd.DataFrame.from_dict(list_collection_rappi_dish)
+
+        df_results = df_results[['_id', 'restaurant_id', 'score']]
+        df_results = df_results.sort_values(by=['score'], ascending=False)
+        
+        return df_results.to_dict('records')
+
     
     def generate(self, input: list):
         model = self.azure_model_generate_name
