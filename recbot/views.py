@@ -16,7 +16,7 @@ def recbotResponse(request):
 
 def recbot(request):
     template = loader.get_template('starter.html')
-    return HttpResponse(template.render() )
+    return HttpResponse(template.render())
 
 @csrf_exempt
 def recbotRecomender(request):
