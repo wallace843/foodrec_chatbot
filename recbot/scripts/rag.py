@@ -75,7 +75,7 @@ class RAG:
 
         df_results = pd.DataFrame.from_dict(list_collection_rappi_dish)
 
-        df_results = df_results[['_id', 'restaurant_id', 'score']]
+        #df_results = df_results[['_id', 'restaurant_id', 'score']]
         df_results = df_results.sort_values(by=['score'], ascending=False)
         
         return df_results.to_dict('records')
