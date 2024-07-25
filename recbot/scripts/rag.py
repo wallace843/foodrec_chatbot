@@ -54,13 +54,18 @@ class RAG:
     
     def get_list_similarity(self, embedding, city, neighborhood):
         database_date = datetime.today()
+        
+        database_rappi_name = 'TESTE-2024-07-23-rappi-webscraping'
 
+        """
         if database_date.hour > 13:
-            database_rappi_name = "TESTE-" + database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
+            database_rappi_name = database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
         else:
             database_date = datetime.today() - timedelta(days = 1)
-            database_rappi_name = "TESTE-" + database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
+            database_rappi_name = database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
+        """
 
+        print(self.mongo_client_foodrec.list_database_names())
         collection_rappi_dish = self.mongo_client_foodrec[database_rappi_name]['dish']
         myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}} 
         list_collection_rappi_dish = list(collection_rappi_dish.find(myquery))
