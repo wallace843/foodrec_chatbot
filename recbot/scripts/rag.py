@@ -65,9 +65,8 @@ class RAG:
             database_rappi_name = database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
         """
 
-        print(self.mongo_client_foodrec.list_database_names())
         collection_rappi_dish = self.mongo_client_foodrec[database_rappi_name]['dish']
-        myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}} 
+        myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}}
         list_collection_rappi_dish = list(collection_rappi_dish.find(myquery))
 
         for l in list_collection_rappi_dish:
@@ -76,7 +75,7 @@ class RAG:
             l['score'] = score
 
         df_results = pd.DataFrame.from_dict(list_collection_rappi_dish)
-        df_results = df_results[['_id', 'restaurant_id', 'score']]
+        df_results = df_results[['_id', 'name', 'restaurant_id', 'score']]
         df_results = df_results.sort_values(by=['score'], ascending=False)
         
         return df_results.to_dict('records')
