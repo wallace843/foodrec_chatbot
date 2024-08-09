@@ -7,12 +7,12 @@ from django.views.decorators.csrf import csrf_exempt
 
 rag = RAG()
 
+@csrf_exempt
 def recbotResponse(request):
-    text = request.GET.get('text')
-    response = rag.output(text)
-    restaurants = [{"_id":r[0].metadata["_id_restaurant"],"id_dish":str(r[0].metadata["_id"]),"score":r[1]} for r in response["list_dish_documents"]]
-    dict_response = {"response" : response["response"], "restaurants":restaurants}
-    return JsonResponse(dict_response)
+    body_unicode = request.body.decode('utf-8')
+    body = json.loads(body_unicode)
+    response = rag.output(body['conversation'], body['city'], body['neighborhood'])
+    return JsonResponse(response)
 
 def recbot(request):
     template = loader.get_template('starter.html')
