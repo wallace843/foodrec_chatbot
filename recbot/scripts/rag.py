@@ -127,7 +127,7 @@ class RAG:
 
         input = conversation_history[-1]['content']
         results_retriever = self.retriever_k(input, 5, city, neighborhood)
-        THRESHOLD_MIN = 0.75
+        THRESHOLD_MIN = 0.80
         sugestions = ' '
         for i in range(3):
             r = results_retriever[i]
