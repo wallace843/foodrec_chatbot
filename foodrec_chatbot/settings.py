@@ -32,9 +32,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1','recbot.azurewebsites.net','recbot-hnh3etgpbne0bnfd.eastus-01.azurewebsites.net']
+ALLOWED_HOSTS = ['127.0.0.1','recbot-dcczgnbjc0gedgda.eastus-01.azurewebsites.net']
 
 CORS_ORIGIN_ALLOW_ALL = True
 

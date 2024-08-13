@@ -23,5 +23,5 @@ def recbotRecomender(request):
     body_unicode = request.body.decode('utf-8')
     body = json.loads(body_unicode)
     list_dict_response = rag.get_list_similarity(body['embedding'], body['city'], body['neighborhood'])
-    list_dict_response = [{"dish_id": str(l['_id']), "dish_name": l['name'], "restaurant_id": str(l['restaurant_id']), "score":l['score']} for l in list_dict_response]
+    list_dict_response = [{"dish_id": str(l['_id']), "dish_name": l['name'], "restaurant_id": str(l['restaurant_id']), "score":l['score'], "sugestion":l['text']} for l in list_dict_response]
     return JsonResponse({'results': list_dict_response})
