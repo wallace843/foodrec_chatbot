@@ -142,7 +142,7 @@ class RAG:
             database_date = datetime.today() - timedelta(days = 2)
             database_rappi_name = database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
 
-        collection_rappi_dish = self.mongo_client_foodrec[database_rappi_name]['dish']
+        collection_rappi_dish = self.mongo_client_foodrec["2024-08-07-ifood-webscraping"]['dish']
         myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}}
         list_collection_rappi_dish = list(collection_rappi_dish.find(myquery).limit(200))
 
