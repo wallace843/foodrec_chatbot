@@ -197,11 +197,20 @@ class RAG:
         results = self.generate(conversation)
         response = results.choices[0].message.content
 
-        if response[-1] != '.' and response[-1] != '!' and response[-1] != '?':
+        while response[-1] != '.' and response[-1] != '!' and response[-1] != '?':
             for i in range(len(response)):
                 if response[(-1)*(1+i)] == '.' or response[(-1)*(1+i)] == '!' or response[(-1)*(1+i)] == '?':
                     response = response[0:len(response) - i]
                     break
+            last_word_response = response[-5:]
+            index_word_ifood = 'https://www.ifood.com.br'.find(last_word_response)
+            index_word_rappi = 'https://www.rappi.com.br'.find(last_word_response)
+
+            if index_word_ifood != -1:
+                response = response[:-(index_word_ifood + len(last_word_response))]
+            elif index_word_rappi != -1:
+                response = response[:-(index_word_rappi + len(last_word_response))]
+
 
         conversation_history.append({"role":"sugestions","content":sugestions})
         conversation_history.append({"role":"assistant","content":response})
