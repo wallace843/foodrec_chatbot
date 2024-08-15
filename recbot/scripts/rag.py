@@ -29,29 +29,15 @@ class RAG:
         self.azure_model = AzureOpenAI(azure_endpoint = AZURE_ENDPOINT, api_key= AZURE_OPENAI_API_KEY, api_version = AZURE_API_VERSION)
         self.mongo_client_foodrec = MongoClient(MONGO_FOODREC)
     
-    def similarity(self, collection, city, neighborhood, k, embedding):
-
-        """
-        list_c = []
-        for doc in cursor:
-            embedding_array = np.array(doc['embedding'])
-            if len(embedding_array) != len(embedding):
-                continue
-            score = np.dot(embedding, embedding_array) / (norm(embedding) * norm(embedding_array))
-            if score < limit:
-                continue
-            else:
-                doc['score'] = score
-                list_c.append(doc)
-                if len(list_c) == k:
-                    return list_c
-        """
-
+    def cosine_similarity(self, collection, city, neighborhood, k, embedding, qeue_result):
         pipeline = [
         {
             '$match': { 
                 f'can_be_delivered_to.{city}': {'$in':[neighborhood]}
                 }
+        },
+        {
+            '$limit': 1000
         },
         {
             '$project': {
@@ -66,23 +52,34 @@ class RAG:
                             '$reduce': {
                                 'input': {'$range': [ 0, {'$size': '$embedding' }]},
                                 'initialValue': 0,
-                                'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ '$embedding', '$$this' ] }, { '$arrayElemAt': [ embedding, "$$this" ] } ] } ] }}
+                                'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ '$embedding', '$$this' ] }, { '$arrayElemAt': [ embedding, "$$this"]}]}]}
+                            }
+                        },
+                        {
+                            '$multiply' : [
+                                {
+                                    '$sqrt':{
+                                        '$reduce': {
+                                            'input': {'$range': [ 0, {'$size': '$embedding' }]},
+                                            'initialValue': 0,
+                                            'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ '$embedding', '$$this' ] }, { '$arrayElemAt': [ '$embedding', "$$this"]}]}]}
+                                        }
+                                    }
                                 },
-                                {'$multiply' : [
-                                    {'$sqrt':{
+                                {   '$sqrt':{
                                         '$reduce': {
                                             'input': {'$range': [ 0, {'$size': '$embedding' }]},
                                             'initialValue': 0,
-                                            'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ '$embedding', '$$this' ] }, { '$arrayElemAt': [ '$embedding', "$$this" ] } ] } ] }}}
-                                        },
-                                    {'$sqrt':{
-                                        '$reduce': {
-                                            'input': {'$range': [ 0, {'$size': '$embedding' }]},
-                                            'initialValue': 0,
-                                            'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ embedding, '$$this' ] }, { '$arrayElemAt': [ embedding, "$$this" ] } ] } ] }
-                            }}}]}]
+                                            'in': { '$add': [ '$$value', { '$multiply': [ { '$arrayElemAt': [ embedding, '$$this' ] }, { '$arrayElemAt': [ embedding, "$$this"]}]}]}
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
-        }},
+            }
+        },
         {'$sort': {'score': -1}},
         {'$limit' : k}
         ]
@@ -90,9 +87,10 @@ class RAG:
         result_dish = collection.aggregate(pipeline)
         list_dish = list(result_dish)
         
-        return list_dish
+        qeue_result.put(list_dish)
     
     def retriever_k(self, input: str, k = 10, city = None, neighborhood = None, limit = 0.92):
+        """
         database_date = datetime.today()
 
         if database_date.hour > 9:
@@ -103,26 +101,25 @@ class RAG:
         database_date_name = database_date.strftime('%Y-%m-%d')
         collection_ifood_dish = self.mongo_client_foodrec[database_date_name + '-ifood-webscraping']['dish']
         collection_rappi_dish = self.mongo_client_foodrec[database_date_name + '-rappi-webscraping']['dish']
+        """
+        embedding = self.azure_model.embeddings.create(input = [input], model=self.azure_model_embedding_name).data[0].embedding
 
         collection_ifood_dish = self.mongo_client_foodrec['2024-08-07-ifood-webscraping']['dish']
         collection_rappi_dish = self.mongo_client_foodrec['2024-08-07-rappi-webscraping']['dish']
 
-        """
-        query = {}
-        if city != None and neighborhood != None:
-            query = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}}
-        
-        cursor_ifood = collection_ifood_dish.find(query)
-        cursor_rappi = collection_rappi_dish.find(query)
-        """
+        queue_ifood = queue.Queue()
+        queue_rappi = queue.Queue()
 
-        embedding = self.azure_model.embeddings.create(input = [input], model=self.azure_model_embedding_name).data[0].embedding
+        thread_ifood = threading.Thread(target=self.cosine_similarity, args=(collection_ifood_dish, city, neighborhood, 2, embedding, queue_ifood))
+        thread_rappi = threading.Thread(target=self.cosine_similarity, args=(collection_rappi_dish, city, neighborhood, 2, embedding, queue_rappi))
 
-        list_ifood_dish = self.similarity(collection_ifood_dish, city, neighborhood, k = 2, embedding = embedding)
-        #list_rappi_dish = self.similarity(collection_rappi_dish, city, neighborhood, k = 2, embedding = embedding)
-        list_rappi_dish = []
+        thread_ifood.start()
+        thread_rappi.start()
+
+        thread_ifood.join()
+        thread_rappi.join()
         
-        list_total_dish = list_ifood_dish + list_rappi_dish
+        list_total_dish = queue_ifood.get() + queue_rappi.get()
         if list_total_dish == []:
             return []
 
@@ -133,6 +130,7 @@ class RAG:
         return df_results.to_dict('records')
     
     def get_list_similarity(self, embedding, city, neighborhood):
+        """
         database_date = datetime.today()
 
         if database_date.hour > 9:
@@ -141,17 +139,27 @@ class RAG:
         else:
             database_date = datetime.today() - timedelta(days = 2)
             database_rappi_name = database_date.strftime('%Y-%m-%d') + '-rappi-webscraping'
+        """
+        collection_ifood_dish = self.mongo_client_foodrec['2024-08-07-ifood-webscraping']['dish']
+        collection_rappi_dish = self.mongo_client_foodrec['2024-08-07-rappi-webscraping']['dish']
 
-        collection_rappi_dish = self.mongo_client_foodrec["2024-08-07-ifood-webscraping"]['dish']
-        myquery = { 'can_be_delivered_to.{}'.format(city): {'$in':[neighborhood]}}
-        list_collection_rappi_dish = list(collection_rappi_dish.find(myquery).limit(200))
+        queue_ifood = queue.Queue()
+        queue_rappi = queue.Queue()
 
-        for l in list_collection_rappi_dish:
-            embedding_array = np.array(l['embedding'])
-            score = np.dot(embedding, embedding_array) / (norm(embedding) * norm(embedding_array))
-            l['score'] = score
+        thread_ifood = threading.Thread(target=self.cosine_similarity, args=(collection_ifood_dish, city, neighborhood, 1000, embedding, queue_ifood))
+        thread_rappi = threading.Thread(target=self.cosine_similarity, args=(collection_rappi_dish, city, neighborhood, 1000, embedding, queue_rappi))
 
-        df_results = pd.DataFrame.from_dict(list_collection_rappi_dish)
+        thread_ifood.start()
+        thread_rappi.start()
+
+        thread_ifood.join()
+        thread_rappi.join()
+        
+        list_total_dish = queue_ifood.get() + queue_rappi.get()
+        if list_total_dish == []:
+            return []
+
+        df_results = pd.DataFrame.from_dict(list_total_dish)
         df_results = df_results[['text', '_id', 'name', 'restaurant_id', 'score']]
         df_results = df_results.sort_values(by=['score'], ascending=False)
         
@@ -177,7 +185,7 @@ class RAG:
                 conversation_history_formated[-1]['content'] += c['content']
 
         input = conversation_history[-1]['content']
-        results_retriever = self.retriever_k(input, 5, city, neighborhood, limit = 0.9)
+        results_retriever = self.retriever_k(input, 5, city, neighborhood, limit = 0.85)
         sugestions = ' '
         for r in results_retriever:
             if sugestions == ' ':
@@ -200,8 +208,3 @@ class RAG:
         list_dish_documents = [{'dish_id':str(r['_id']), 'dish_name': r['name'], 'restaurant_id': str(r['restaurant_id']), 'score':r['score']} for r in results_retriever]
 
         return {"response": conversation_history, "list_dish_documents": list_dish_documents}
-
-
-
-
-        
