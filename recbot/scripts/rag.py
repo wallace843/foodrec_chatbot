@@ -179,20 +179,38 @@ class RAG:
     def output(self, conversation_history: list, city, neighborhood):
         conversation_history_formated = []
         for c in conversation_history:
-            if c['role'] == 'user' or c['role'] == 'assistant':
+            if c['role'] == 'user':
                 conversation_history_formated.append({'role':c['role'], 'content':c['content']})
+            elif c['role'] == 'assistant':
+                conversation_history_formated.append({'role':c['role'], 'content':c['content'] + f" Somente serão apresentadas sugestões que são entregues em {neighborhood}, {city}, não apresente sugestões de pratos para cidade ou bairros diferentes destes."})
             else:
-                conversation_history_formated[-1]['content'] += c['content']
+                list_sugestions_history = c['content'].split('; https')
+                l_result = ''
+                l_sugestions = len(list_sugestions_history)
+                for l in range(l_sugestions):
+                    new_sugestion = list_sugestions_history[l]
+                    if l == 0:
+                        l_result = new_sugestion
+                    else:
+                        l_result += new_sugestion[new_sugestion.find(';')+2:]
+                    if l < (l_sugestions - 1):
+                        l_result += '. ' 
+                conversation_history_formated[-1]['content'] += l_result
 
         input = conversation_history[-1]['content']
         results_retriever = self.retriever_k(input, 5, city, neighborhood, limit = 0.85)
         sugestions = ' '
+        sugestions_prompt = ' '
         for r in results_retriever:
             if sugestions == ' ':
                 sugestions = ' Sugestões: '
+                sugestions_prompt = ' Sugestões: '
             sugestions = sugestions + r['text'] + '; '
+            new_sugestion = r['text']
+            new_sugestion = new_sugestion[:new_sugestion.find('; https')]
+            sugestions_prompt = sugestions_prompt + new_sugestion + '. '
         
-        conversation_history_formated[-1]['content'] += sugestions
+        conversation_history_formated[-1]['content'] += sugestions_prompt
         conversation = self.shots + conversation_history_formated
         results = self.generate(conversation)
         response = results.choices[0].message.content
