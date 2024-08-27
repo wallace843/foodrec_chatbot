@@ -1,0 +1,9 @@
+import environ
+
+env = environ.Env()
+environ.Env.read_env()
+
+AZURE_OPENAI_API_KEY = env('AZURE_OPENAI_API_KEY')
+AZURE_ENDPOINT = env('AZURE_ENDPOINT')
+AZURE_API_VERSION = env('AZURE_API_VERSION')
+MONGO_FOODREC = env('MONGO_FOODREC')

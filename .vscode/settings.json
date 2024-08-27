@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./recbot/src/external_acess"
+    ]
+}
